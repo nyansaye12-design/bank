@@ -1,0 +1,250 @@
+<title>Baobab Savings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered column, auth screen then a dashboard (balance, actions, statement). */
+:root {
+  --bg: #f3f1ec;
+  --surface: #fbfaf7;
+  --fg: #1d2420;
+  --muted: #5d6a63;
+  --line: #d9d5cb;
+  --accent: #1f5c46;
+  --accent-fg: #f6fbf8;
+  --good: #1f7a4d;
+  --bad: #b3372b;
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121714; --surface: #1a211d; --fg: #e8ece8; --muted: #9aa8a0; --line: #2d3832;
+    --accent: #5fbf98; --accent-fg: #0e1a14; --good: #62c48f; --bad: #ee8a7e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121714; --surface: #1a211d; --fg: #e8ece8; --muted: #9aa8a0; --line: #2d3832;
+  --accent: #5fbf98; --accent-fg: #0e1a14; --good: #62c48f; --bad: #ee8a7e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 24px 48px; }
+.wrap { max-width: 520px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+h1, h2 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: 28px; line-height: 1.1; }
+h2 { font-size: 18px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand small { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; color: var(--muted); border: 0; padding: 10px 6px; font: 500 14px var(--body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+input { font: 400 16px var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; width: 100%; min-width: 0; }
+input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.primary { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 8px; padding: 12px 16px; font: 500 15px var(--body); cursor: pointer; }
+.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font: 400 13px var(--body); cursor: pointer; }
+form { display: flex; flex-direction: column; gap: 14px; }
+.msg { min-height: 1.4em; font-size: 14px; }
+.msg.ok { color: var(--good); }
+.msg.err { color: var(--bad); }
+.hint { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 12px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.who span { color: var(--muted); font-size: 13px; }
+.balance { font-family: var(--display); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.balance-label { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+ul.stmt { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+ul.stmt li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+ul.stmt li:first-child { border-top: 0; }
+ul.stmt .what { min-width: 0; overflow-wrap: anywhere; }
+ul.stmt .amt { text-align: right; font-weight: 500; }
+ul.stmt .amt.in { color: var(--good); }
+ul.stmt .amt.out { color: var(--bad); }
+ul.stmt .after { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <div class="brand"><h1>Baobab Savings</h1><small>Demo bank</small></div>
+
+  <section id="auth" class="card">
+    <div class="seg" role="group" aria-label="Choose">
+      <button type="button" id="tab-login" aria-pressed="true">Log in</button>
+      <button type="button" id="tab-open" aria-pressed="false">Open account</button>
+    </div>
+
+    <form id="login-form">
+      <label>Account number<input id="l-acc" inputmode="numeric" autocomplete="off" value="1001"></label>
+      <label>PIN<input id="l-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" value="1234"></label>
+      <button class="primary" type="submit">Log in</button>
+    </form>
+
+    <form id="open-form" hidden>
+      <label>Full name<input id="o-name" autocomplete="off"></label>
+      <label>Choose a 4-digit PIN<input id="o-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+      <label>Opening deposit (GH₵, minimum 10)<input id="o-amt" inputmode="decimal" autocomplete="off"></label>
+      <button class="primary" type="submit">Create account</button>
+    </form>
+
+    <div id="auth-msg" class="msg" role="status" aria-live="polite"></div>
+    <p class="hint">Sample accounts: <span class="mono">1001</span> / PIN <span class="mono">1234</span> (Kofi) and <span class="mono">1002</span> / PIN <span class="mono">4321</span> (Ama). This is a classroom demo; nothing is stored and no real money moves.</p>
+  </section>
+
+  <section id="dash" hidden>
+    <div class="card">
+      <div class="top">
+        <div class="who"><h2 id="d-name"></h2><span id="d-acc" class="mono"></span></div>
+        <button class="ghost" id="logout" type="button">Log out</button>
+      </div>
+      <div>
+        <div class="balance-label">Available balance</div>
+        <div class="balance" id="d-bal"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="seg" role="group" aria-label="Action">
+        <button type="button" data-act="deposit" aria-pressed="true">Deposit</button>
+        <button type="button" data-act="withdraw" aria-pressed="false">Withdraw</button>
+        <button type="button" data-act="transfer" aria-pressed="false">Transfer</button>
+      </div>
+      <form id="act-form">
+        <label id="to-wrap" hidden>Recipient account number<input id="a-to" inputmode="numeric" autocomplete="off"></label>
+        <label>Amount (GH₵)<input id="a-amt" inputmode="decimal" autocomplete="off"></label>
+        <button class="primary" type="submit" id="a-go">Deposit</button>
+      </form>
+      <div id="act-msg" class="msg" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h2>Statement</h2>
+      <ul class="stmt" id="stmt"></ul>
+    </div>
+  </section>
+</div>
+
+<script>
+/* Data lives in parallel arrays, linked by the same index. */
+var MAX_ACCOUNTS = 10, MIN_OPENING = 10;
+var accNumbers = [1001, 1002];
+var holders    = ["Kofi Mensah", "Ama Owusu"];
+var pins       = ["1234", "4321"];
+var balances   = [500, 300];
+var history    = [
+  [{ text: "Account opened", amt: 500, bal: 500 }],
+  [{ text: "Account opened", amt: 300, bal: 300 }]
+];
+var current = -1, action = "deposit";
+
+function $(id) { return document.getElementById(id); }
+function money(n) { return "GH₵ " + n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function findAccount(no) {            // linear search over the array
+  for (var i = 0; i < accNumbers.length; i++) if (accNumbers[i] === no) return i;
+  return -1;
+}
+function say(el, text, ok) { el.textContent = text; el.className = "msg " + (ok ? "ok" : "err"); }
+function parseAmount(v) { var n = parseFloat(String(v).replace(/,/g, "")); return isFinite(n) ? Math.round(n * 100) / 100 : NaN; }
+
+function createAccount(name, pin, opening) {
+  if (!name.trim()) return { err: "Enter your full name." };
+  if (accNumbers.length >= MAX_ACCOUNTS) return { err: "The bank is full (" + MAX_ACCOUNTS + " accounts)." };
+  if (!/^\d{4}$/.test(pin)) return { err: "PIN must be exactly 4 digits." };
+  if (!(opening >= MIN_OPENING)) return { err: "Opening deposit must be at least GH₵ " + MIN_OPENING + "." };
+  var no = 1001 + accNumbers.length;
+  accNumbers.push(no); holders.push(name.trim()); pins.push(pin); balances.push(opening);
+  history.push([{ text: "Account opened", amt: opening, bal: opening }]);
+  return { no: no };
+}
+function deposit(i, amt) {
+  if (!(amt > 0)) return "Enter an amount greater than zero.";
+  balances[i] = Math.round((balances[i] + amt) * 100) / 100;
+  history[i].push({ text: "Deposit", amt: amt, bal: balances[i] });
+  return null;
+}
+function withdraw(i, amt) {
+  if (!(amt > 0)) return "Enter an amount greater than zero.";
+  if (amt > balances[i]) return "Insufficient funds. Your balance is " + money(balances[i]) + ".";
+  balances[i] = Math.round((balances[i] - amt) * 100) / 100;
+  history[i].push({ text: "Withdrawal", amt: -amt, bal: balances[i] });
+  return null;
+}
+function transfer(i, toNo, amt) {
+  var j = findAccount(toNo);
+  if (j === -1) return "No account with that number.";
+  if (j === i) return "You cannot transfer to your own account.";
+  if (!(amt > 0)) return "Enter an amount greater than zero.";
+  if (amt > balances[i]) return "Insufficient funds. Your balance is " + money(balances[i]) + ".";
+  balances[i] = Math.round((balances[i] - amt) * 100) / 100;
+  balances[j] = Math.round((balances[j] + amt) * 100) / 100;
+  history[i].push({ text: "Transfer to " + accNumbers[j] + " (" + holders[j] + ")", amt: -amt, bal: balances[i] });
+  history[j].push({ text: "Transfer from " + accNumbers[i] + " (" + holders[i] + ")", amt: amt, bal: balances[j] });
+  return null;
+}
+
+function render() {
+  $("d-name").textContent = holders[current];
+  $("d-acc").textContent = "Account " + accNumbers[current];
+  $("d-bal").textContent = money(balances[current]);
+  var ul = $("stmt"); ul.textContent = "";
+  var rows = history[current];
+  for (var k = rows.length - 1; k >= 0; k--) {     // newest first
+    var r = rows[k], li = document.createElement("li");
+    var what = document.createElement("span"); what.className = "what"; what.textContent = r.text;
+    var amt = document.createElement("span"); amt.className = "amt mono " + (r.amt >= 0 ? "in" : "out");
+    amt.textContent = (r.amt >= 0 ? "+" : "−") + money(Math.abs(r.amt));
+    var after = document.createElement("span"); after.className = "after mono"; after.textContent = "Balance " + money(r.bal);
+    li.appendChild(what); li.appendChild(amt); li.appendChild(after); ul.appendChild(li);
+  }
+}
+function show(loggedIn) { $("auth").hidden = loggedIn; $("dash").hidden = !loggedIn; }
+function setAuthTab(login) {
+  $("login-form").hidden = !login; $("open-form").hidden = login;
+  $("tab-login").setAttribute("aria-pressed", login); $("tab-open").setAttribute("aria-pressed", !login);
+  $("auth-msg").textContent = ""; $("auth-msg").className = "msg";
+}
+function setAction(a) {
+  action = a;
+  var btns = document.querySelectorAll("[data-act]");
+  for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-act") === a);
+  $("to-wrap").hidden = a !== "transfer";
+  $("a-go").textContent = a.charAt(0).toUpperCase() + a.slice(1);
+  $("act-msg").textContent = ""; $("act-msg").className = "msg";
+}
+
+$("tab-login").onclick = function () { setAuthTab(true); };
+$("tab-open").onclick = function () { setAuthTab(false); };
+var actBtns = document.querySelectorAll("[data-act]");
+for (var b = 0; b < actBtns.length; b++) actBtns[b].onclick = function () { setAction(this.getAttribute("data-act")); };
+
+$("login-form").onsubmit = function (e) {
+  e.preventDefault();
+  var i = findAccount(parseInt($("l-acc").value, 10));
+  if (i === -1 || pins[i] !== $("l-pin").value.trim()) { say($("auth-msg"), "Account number or PIN is incorrect.", false); return; }
+  current = i; $("l-pin").value = ""; show(true); render(); setAction("deposit");
+};
+$("open-form").onsubmit = function (e) {
+  e.preventDefault();
+  var res = createAccount($("o-name").value, $("o-pin").value.trim(), parseAmount($("o-amt").value));
+  if (res.err) { say($("auth-msg"), res.err, false); return; }
+  setAuthTab(true);
+  $("l-acc").value = res.no; $("l-pin").value = "";
+  say($("auth-msg"), "Account created. Your account number is " + res.no + ". Enter your PIN to log in.", true);
+  $("o-name").value = ""; $("o-pin").value = ""; $("o-amt").value = "";
+};
+$("act-form").onsubmit = function (e) {
+  e.preventDefault();
+  var amt = parseAmount($("a-amt").value), err;
+  if (isNaN(amt)) { say($("act-msg"), "Enter a valid amount.", false); return; }
+  if (action === "deposit") err = deposit(current, amt);
+  else if (action === "withdraw") err = withdraw(current, amt);
+  else err = transfer(current, parseInt($("a-to").value, 10), amt);
+  if (err) { say($("act-msg"), err, false); return; }
+  say($("act-msg"), action === "transfer" ? "Transfer complete." : action === "deposit" ? "Deposit complete." : "Withdrawal complete.", true);
+  $("a-amt").value = ""; $("a-to").value = ""; render();
+};
+$("logout").onclick = function () { current = -1; show(false); setAuthTab(true); };
+</script>
